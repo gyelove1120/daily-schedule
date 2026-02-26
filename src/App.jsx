@@ -500,16 +500,18 @@ export default function DailySchedule() {
         {/* Date history strip */}
         <div style={S.historyStrip}>
           {Array.from({length:7},(_,i)=>{
-            const ds = addDays(todayStr, -(6-i));
+            const ds = addDays(selectedDate, -(3-i));
             const di = formatDateKR(ds);
             const hasTasks = hasTasksForDate(ds);
             const isSel = ds === selectedDate;
+            const isTod = ds === todayStr;
             return (
               <button key={ds} onClick={()=>setSelectedDate(ds)}
-                style={{...S.historyDay,...(isSel?S.historyDayActive:{})}}>
+                style={{...S.historyDay,...(isSel?S.historyDayActive:{}), ...(isTod&&!isSel?{borderColor:"#E8B830"}:{})}}>
                 <div style={{fontSize:10,color:isSel?"#fff":"#B8A060",fontWeight:600}}>{di.day}</div>
                 <div style={{fontSize:15,fontWeight:800,color:isSel?"#fff":"#3E2C00"}}>{di.date}</div>
                 {hasTasks && !isSel && <div style={S.historyDot}/>}
+                {isTod && !isSel && <div style={{fontSize:8,color:"#E8B830",fontWeight:700}}>오늘</div>}
               </button>
             );
           })}
