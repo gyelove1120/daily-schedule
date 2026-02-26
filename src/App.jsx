@@ -109,6 +109,10 @@ export default function DailySchedule() {
   const [expandedTask, setExpandedTask] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
   const [noteValue, setNoteValue] = useState("");
+  const [editingTask, setEditingTask] = useState(null);
+  const [editTaskText, setEditTaskText] = useState("");
+  const [editTaskTime, setEditTaskTime] = useState("");
+  const [editTaskCat, setEditTaskCat] = useState("");
   const [showAddProject, setShowAddProject] = useState(false);
   const [newProject, setNewProject] = useState({ name:"", catId:"cat1", startMonth:1, endMonth:3, note:"" });
   const [expandedProject, setExpandedProject] = useState(null);
@@ -213,6 +217,31 @@ export default function DailySchedule() {
       ...prev, [cat]: (prev[cat]||[]).map(t => t.id===id ? {...t, note:noteValue} : t)
     }));
     setEditingNote(null);
+  };
+  const startEditTask = (cat, task) => {
+    setEditingTask(task.id);
+    setEditTaskText(task.text);
+    setEditTaskTime(task.time);
+    setEditTaskCat(cat);
+  };
+  const saveEditTask = (origCat, id) => {
+    if(!editTaskText.trim()) return;
+    // If category changed, move the task
+    if(editTaskCat !== origCat) {
+      setTasksForDate(selectedDate, prev => {
+        const oldList = (prev[origCat]||[]).filter(t => t.id !== id);
+        const task = (prev[origCat]||[]).find(t => t.id === id);
+        if(!task) return prev;
+        const updatedTask = {...task, text:editTaskText, time:editTaskTime};
+        const newList = [...(prev[editTaskCat]||[]), updatedTask].sort((a,b)=>a.time.localeCompare(b.time));
+        return {...prev, [origCat]: oldList, [editTaskCat]: newList};
+      });
+    } else {
+      setTasksForDate(selectedDate, prev => ({
+        ...prev, [origCat]: (prev[origCat]||[]).map(t => t.id===id ? {...t, text:editTaskText, time:editTaskTime} : t).sort((a,b)=>a.time.localeCompare(b.time))
+      }));
+    }
+    setEditingTask(null);
   };
   const copyYesterdayTasks = () => {
     const yesterday = addDays(selectedDate, -1);
@@ -359,6 +388,27 @@ export default function DailySchedule() {
                     </div>
                     {expandedTask===task.id&&(
                       <div style={{...S.notePanel,background:st.bg,borderLeftColor:st.accent}}>
+                        {/* Task Edit */}
+                        {editingTask===task.id?(
+                          <div style={{marginBottom:10}}>
+                            <div style={{display:"flex",gap:8,marginBottom:8}}>
+                              <input type="time" value={editTaskTime} onChange={e=>setEditTaskTime(e.target.value)} style={{...S.addTime,flex:"none"}}/>
+                              <input value={editTaskText} onChange={e=>setEditTaskText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEditTask(cat.id,task.id)} style={S.addInput} autoFocus/>
+                            </div>
+                            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                              <select value={editTaskCat} onChange={e=>setEditTaskCat(e.target.value)} style={{...S.addSelect,flex:1}}>
+                                {categories.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                              </select>
+                              <button onClick={()=>saveEditTask(cat.id,task.id)} style={S.noteSaveBtn}>저장</button>
+                              <button onClick={()=>setEditingTask(null)} style={S.noteCancelBtn}>취소</button>
+                            </div>
+                          </div>
+                        ):(
+                          <div onClick={()=>startEditTask(cat.id,task)} style={{...S.noteDisplay,marginBottom:task.note||editingNote===task.id?10:0}}>
+                            <div style={{fontSize:12,color:st.color,fontWeight:600}}>✎ 할 일 수정하려면 탭하세요</div>
+                          </div>
+                        )}
+                        {/* Note Edit */}
                         {editingNote===task.id?(
                           <div style={{display:"flex",gap:8}}>
                             <textarea value={noteValue} onChange={e=>setNoteValue(e.target.value)} style={S.noteTextarea} placeholder="메모나 상세 설명을 입력하세요..." rows={3} autoFocus/>
@@ -369,7 +419,7 @@ export default function DailySchedule() {
                           </div>
                         ):(
                           <div onClick={()=>{setEditingNote(task.id);setNoteValue(task.note);}} style={S.noteDisplay}>
-                            {task.note?<div style={S.noteText}>{task.note}</div>:<div style={S.notePlaceholder}>탭하여 메모 추가...</div>}
+                            {task.note?<div style={S.noteText}>📌 {task.note}</div>:<div style={S.notePlaceholder}>탭하여 메모 추가...</div>}
                             <span style={S.noteEditIcon}>✎</span>
                           </div>
                         )}
